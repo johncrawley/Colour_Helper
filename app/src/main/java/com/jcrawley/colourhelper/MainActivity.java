@@ -8,15 +8,13 @@ import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.view.MotionEvent;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView srcImageView;
-    private TextView colorRGB;
+    private TextView rgbTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +27,8 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupViews(){
+
+        rgbTextView = findViewById(R.id.rgbText);
         srcImageView = findViewById(R.id.sourceImageView);
         invertMatrix = new Matrix();
         srcImageView.getImageMatrix().invert(invertMatrix);
@@ -37,19 +37,28 @@ public class MainActivity extends AppCompatActivity {
             int x = (int) invertedPoints[0];
             int y = (int) invertedPoints[1];
 
+            float startX = srcImageView.getX();
+            float startY = srcImageView.getY();
+
             Drawable imgDrawable = ((ImageView)view).getDrawable();
             Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
 
-            x = getLimitedCoordinate(x, bitmap.getWidth() - 1);
-            y = getLimitedCoordinate(y, bitmap.getHeight() -1);
+            float picX = motionEvent.getX() - startX;
+            float picY = motionEvent.getY() - startY;
+
+
+            x = getLimitedCoordinate((int)picX, bitmap.getWidth() - 1);
+            y = getLimitedCoordinate((int)picY, bitmap.getHeight() -1);
 
             int touchedRGB = bitmap.getPixel(x, y);
-            String colorText = "#" + Integer.toHexString(touchedRGB);
-            colorRGB.setText(colorText);
-            colorRGB.setTextColor(touchedRGB);
 
+            String colorText = "#" + Integer.toHexString(touchedRGB) + " startX,Y: " + startX + ","  + startY + ",  motion X,Y: " + x+ "," +y;
+            rgbTextView.setText(colorText);
+            rgbTextView.setTextColor(touchedRGB);
             return true;
         });
+
+
     };
 
 
