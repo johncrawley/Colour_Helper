@@ -3,8 +3,12 @@ package com.jcrawley.colourhelper;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -25,6 +29,9 @@ public class MainActivity extends AppCompatActivity {
         setupViews();
     }
 
+    private void log(String msg){
+        System.out.println("^^^ MainActivity: " + msg);
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupViews(){
@@ -38,11 +45,14 @@ public class MainActivity extends AppCompatActivity {
                 layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 Drawable imgDrawable = srcImageView.getDrawable();
                 Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
-                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, srcImageView.getMeasuredWidth(), srcImageView.getMeasuredHeight(), false);
+                int imageHeight = srcImageView.getDrawable().getIntrinsicHeight();
+                int imageWidth = srcImageView.getDrawable().getIntrinsicWidth();
 
+                Point p = getScaledImageDimensions(srcImageView);
+                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, p.x, p.y, false);
 
-                System.out.println("^^^ srcImageView width, height: " + srcImageView.getWidth() + "," + srcImageView.getHeight());
-                System.out.println("^^^ ^scaledBitmap width, height: " + scaledBitmap.getWidth() + "," + scaledBitmap.getHeight());
+                log("srcImageView width, height: " + srcImageView.getMeasuredWidth() + "," + srcImageView.getMeasuredHeight());
+                log("scaledBitmap width, height: " + p.x + "," + p.y);
 
 
                 srcImageView.setOnTouchListener((view, motionEvent) -> {
@@ -59,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
 
                     int touchedRGB = scaledBitmap.getPixel(x, y);
 
-                    String colorText = "#" + Integer.toHexString(touchedRGB) + " startX,Y: " + startX + ","  + startY + ",  motion X,Y: " + x+ "," +y;
+                    String colorText = "#" + Integer.toHexString(touchedRGB);
                     rgbTextView.setText(colorText);
                     rgbTextView.setTextColor(touchedRGB);
                     return true;
@@ -67,12 +77,39 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        rgbTextView.setOnClickListener(v -> copyToClipBoard());
+
+    }
 
 
-    };
+    private Point getScaledImageDimensions(ImageView imageView){
+        float actualHeight, actualWidth;
+        float viewHeight = imageView.getHeight();
+        float viewWidth = imageView.getWidth();
+        float bitmapHeight = 500, bitmapWidth = 500;
+
+        if (viewHeight * bitmapWidth <= viewWidth * bitmapHeight) {
+            actualWidth = bitmapWidth * viewHeight / bitmapHeight;
+            actualHeight = viewHeight;
+        } else {
+            actualHeight = bitmapHeight * viewWidth / bitmapWidth;
+            actualWidth = viewWidth;
+        }
+        return new Point((int)actualWidth, (int)actualHeight);
+    }
 
 
-    int getLimitedCoordinate(int coordinate, int maxLimit){
+    private int getLimitedCoordinate(int coordinate, int maxLimit){
         return Math.min(Math.max(coordinate,0), maxLimit);
     }
+
+
+    private void copyToClipBoard(){
+        String text = rgbTextView.getText().toString().trim();
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("colour", text);
+        clipboard.setPrimaryClip(clip);
+    }
+
+
 }
