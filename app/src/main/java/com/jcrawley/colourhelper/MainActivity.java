@@ -7,20 +7,22 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView srcImageView;
     private TextView rgbTextView;
+    private  int[] imageViewCoordinates;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,56 +31,60 @@ public class MainActivity extends AppCompatActivity {
         setupViews();
     }
 
-    private void log(String msg){
-        System.out.println("^^^ MainActivity: " + msg);
-    }
 
-    @SuppressLint("ClickableViewAccessibility")
     private void setupViews(){
-
         rgbTextView = findViewById(R.id.rgbText);
         srcImageView = findViewById(R.id.sourceImageView);
+        setupImageViewListenersAfterLayoutHasBeenLoaded();
+        rgbTextView.setOnClickListener(v -> copyToClipBoard());
+    }
+
+
+    private void setupImageViewListenersAfterLayoutHasBeenLoaded(){
         ViewGroup layout = findViewById(R.id.mainLayout);
         layout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @SuppressLint("ClickableViewAccessibility")
             @Override
             public void onGlobalLayout() {
                 layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 Drawable imgDrawable = srcImageView.getDrawable();
                 Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
-                int imageHeight = srcImageView.getDrawable().getIntrinsicHeight();
-                int imageWidth = srcImageView.getDrawable().getIntrinsicWidth();
-
+                imageViewCoordinates = getStartCoordinates();
                 Point p = getScaledImageDimensions(srcImageView);
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, p.x, p.y, false);
-
-                log("srcImageView width, height: " + srcImageView.getMeasuredWidth() + "," + srcImageView.getMeasuredHeight());
-                log("scaledBitmap width, height: " + p.x + "," + p.y);
-
-
-                srcImageView.setOnTouchListener((view, motionEvent) -> {
-                    int[] viewLocation = new int[2];
-                    srcImageView.getLocationOnScreen(viewLocation);
-                    float startX = viewLocation[0];
-                    float startY = viewLocation[1];
-
-                    float picX = motionEvent.getX() - startX;
-                    float picY = motionEvent.getY() - startY;
-
-                    int x = getLimitedCoordinate((int)picX, scaledBitmap.getWidth() - 1);
-                    int y = getLimitedCoordinate((int)picY, scaledBitmap.getHeight() -1);
-
-                    int touchedRGB = scaledBitmap.getPixel(x, y);
-
-                    String colorText = "#" + Integer.toHexString(touchedRGB);
-                    rgbTextView.setText(colorText);
-                    rgbTextView.setTextColor(touchedRGB);
-                    return true;
-                });
+                srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent, scaledBitmap));
             }
         });
+    }
 
-        rgbTextView.setOnClickListener(v -> copyToClipBoard());
 
+    private boolean setColorRgbTextFromImagePixel(MotionEvent motionEvent, Bitmap scaledBitmap){
+        int x = getCoordinate(motionEvent.getX(), scaledBitmap.getWidth(), imageViewCoordinates[0]);
+        int y = getCoordinate(motionEvent.getY(), scaledBitmap.getHeight(), imageViewCoordinates[1]);
+        int pixelColorValue = scaledBitmap.getPixel(x, y);
+        String colorText = createRgbStr(pixelColorValue);
+        rgbTextView.setText(colorText);
+        rgbTextView.setTextColor(pixelColorValue);
+        return true;
+    }
+
+
+    private int getCoordinate(float motionEventCoordinate, int maxValue, int imageViewCoordinate){
+        float coordinate = motionEventCoordinate - imageViewCoordinate;
+        return getLimitedCoordinate((int)coordinate, maxValue - 1);
+    }
+
+
+    public int[] getStartCoordinates(){
+        int[] startCoordinates = new int[2];
+        srcImageView.getLocationOnScreen(startCoordinates);
+        return startCoordinates;
+    }
+
+
+    private String createRgbStr(int pixelValue){
+        String str = Integer.toHexString(pixelValue).substring(2);
+        return "#" + str;
     }
 
 
@@ -109,6 +115,8 @@ public class MainActivity extends AppCompatActivity {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("colour", text);
         clipboard.setPrimaryClip(clip);
+        //clipboard.getPrimaryClip().getItemAt(0);
+        Toast.makeText(this, getString(R.string.copied_to_clipboard_toast), Toast.LENGTH_SHORT).show();
     }
 
 

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Colour Helper</string>
+    <string name="copied_to_clipboard_toast">Copied to Clipboard</string>
 </resources>
