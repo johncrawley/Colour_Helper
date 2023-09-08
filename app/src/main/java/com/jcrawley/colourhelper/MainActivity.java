@@ -12,6 +12,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView srcImageView;
     private TextView rgbTextView;
     private  int[] imageViewCoordinates;
+    private View selectedColorView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupViews(){
         rgbTextView = findViewById(R.id.rgbText);
         srcImageView = findViewById(R.id.sourceImageView);
+        selectedColorView = findViewById(R.id.selectedColorView);
         setupImageViewListenersAfterLayoutHasBeenLoaded();
         rgbTextView.setOnClickListener(v -> copyToClipBoard());
     }
@@ -64,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         int pixelColorValue = scaledBitmap.getPixel(x, y);
         String colorText = createRgbStr(pixelColorValue);
         rgbTextView.setText(colorText);
-        rgbTextView.setTextColor(pixelColorValue);
+        selectedColorView.setBackgroundColor(pixelColorValue);
         return true;
     }
 
