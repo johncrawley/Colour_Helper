@@ -45,6 +45,7 @@
             android:id="@+id/rgbText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="serif-monospace"
             android:text="#000000"
             android:textSize="@dimen/rgb_text_size"
             android:textAlignment="center"/>
