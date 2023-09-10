@@ -2,14 +2,18 @@ package com.jcrawley.colourhelper;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -19,6 +23,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,8 +34,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -38,15 +48,42 @@ public class MainActivity extends AppCompatActivity {
     private TextView rgbTextView;
     private  int[] imageViewCoordinates;
     private View selectedColorView;
-    private ActivityResultLauncher<Intent> cameraActivityResultLauncher;
-    private String currentPhotoPath;
+    private Map<Integer, Runnable> menuActions;
+    private PhotoHelper photoHelper;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setupViews();
-        initActivityResultLauncherForCamera();
+        photoHelper = new PhotoHelper(this);
+        photoHelper.initActivityResultLauncherForCamera();
+    }
+
+
+    public void setSrcImage(BitmapDrawable bitmapDrawable){
+        srcImageView.setBackground(bitmapDrawable);
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
+        getMenuInflater().inflate(R.menu.menuitems, menu);
+        menuActions = new HashMap<>();
+        menuActions.put(R.id.action_take_picture, () -> photoHelper.checkPermissionAndStartCamera());
+        return super.onCreateOptionsMenu(menu);
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Runnable runnable = menuActions.get(item.getItemId());
+        if(runnable != null) {
+            runnable.run();
+        }
+        return true;
     }
 
 
@@ -139,67 +176,5 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void initActivityResultLauncherForCamera(){
-        cameraActivityResultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if(result == null){
-                        return;
-                    }
-                    if (result.getResultCode() == RESULT_OK) {
-                        loadImage(currentPhotoPath);
-                    }
-                });
-    }
-
-
-    private void startTakePictureActivity(){
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        File photoFile = createTempImageFile();
-        if (photoFile == null) {
-            Toast.makeText(MainActivity.this, "unable to create temp image file", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        Uri photoURI = FileProvider.getUriForFile(this, "com.jcrawley.android.fileprovider", photoFile);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-        cameraActivityResultLauncher.launch(intent);
-    }
-
-    private File createTempImageFile(){
-        File photoFile = null;
-        try {
-            photoFile = createImageFile();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return photoFile;
-    }
-
-    private File createImageFile() throws IOException {
-        String imageFileName = "saved_photo_" + System.currentTimeMillis() + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File imageFile = File.createTempFile(imageFileName, ".jpg", storageDir );
-        currentPhotoPath = imageFile.getAbsolutePath();
-        return imageFile;
-    }
-
-
-    public void loadImage(String path){
-        Uri uri = Uri.parse(path);
-        if(uri == null){
-            return;
-        }
-        try{
-            InputStream input = getContentResolver().openInputStream(uri);
-            if(input == null){
-                return;
-            }
-            Bitmap bitmap = BitmapFactory.decodeStream(input);
-            BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
-            srcImageView.setBackground(bitmapDrawable);
-        }catch (IOException e){
-          e.printStackTrace();
-        }
-    }
 
 }
