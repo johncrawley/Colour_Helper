@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.widget.Toast;
@@ -20,14 +21,13 @@ import androidx.core.content.FileProvider;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class PhotoHelper {
 
     private final MainActivity mainActivity;
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> cameraActivityResultLauncher;
-    private String currentPhotoPath;
+    private File photoFile;
 
     public PhotoHelper(MainActivity mainActivity){
         this.mainActivity = mainActivity;
@@ -61,14 +61,37 @@ public class PhotoHelper {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if(result != null && result.getResultCode() == RESULT_OK) {
-                        loadImage();
+                        //loadImage();
+                        Intent data = result.getData();
+                        boolean doesPhotoFileExist = photoFile != null && photoFile.exists();
+                        loadImageFromPhotoFile();
+
+                        log("camera result... photoFile still exists? : " + doesPhotoFileExist);
+                        if(data == null){
+                            log("loading photoBitmap but result intent is null, returning!");
+                            return;
+                        }
+                        Bundle bundle = data.getExtras();
+                        if(bundle == null){
+                            log("loading photoBitmap but bundle is null, returning!");
+                            return;
+                        }
+                        Bitmap photoBitmap = (Bitmap) bundle.get("data");
+                        if(photoBitmap == null){
+                            log("photoBitmap is null, returning!");
+                            return;
+                        }
+                        BitmapDrawable bitmapDrawable = new BitmapDrawable(mainActivity.getResources(), photoBitmap);
+                        log("photo bitmap dimensions: " + photoBitmap.getHeight() + "," + photoBitmap.getWidth());
+                        mainActivity.setSrcImage(photoBitmap);
+
                     }
                 });
     }
 
 
     private void startTakePictureActivity(){
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         File photoFile = createTempImageFile();
         if (photoFile == null) {
             Toast.makeText(mainActivity, "unable to create temp image file", Toast.LENGTH_SHORT).show();
@@ -76,14 +99,17 @@ public class PhotoHelper {
             return;
         }
         Uri photoUri = FileProvider.getUriForFile(mainActivity, "com.jcrawley.colorpicker.android.fileprovider", photoFile);
+
+
         System.out.println("photoUri path : " + photoUri.getPath());
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-        cameraActivityResultLauncher.launch(intent);
+        log("photoFile exists? : " + photoFile.exists());
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+        cameraActivityResultLauncher.launch(cameraIntent);
     }
 
 
     private File createTempImageFile(){
-        File photoFile = null;
+        photoFile = null;
         try {
             photoFile = createImageFile();
         } catch (IOException ex) {
@@ -96,38 +122,21 @@ public class PhotoHelper {
     private File createImageFile() throws IOException {
         String imageFileName = "saved_photo_" + System.currentTimeMillis() + "_";
         File storageDir = mainActivity.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        log("createImageFile() storageDir = "  + storageDir.getAbsolutePath());
-        File imageFile = File.createTempFile(imageFileName, ".jpg", storageDir );
-        log("temp imageFile exists? : " + imageFile.exists() + " imageFile absolute path: " + imageFile.getAbsolutePath());
-        currentPhotoPath = imageFile.getAbsolutePath();
-        return imageFile;
+        return File.createTempFile(imageFileName, ".jpg", storageDir );
     }
 
 
-    public void loadImage(){
-        log("Entered loadImage");
-        Uri uri = Uri.parse(currentPhotoPath);
-        log("loadImage() parsed Uri");
-        if(uri == null){
-            log("uri is null, returning");
+    public void loadImageFromPhotoFile() {
+        if (photoFile == null || !photoFile.exists()) {
+            log("loadImageFromPhotoFile() could find temp file");
             return;
         }
-        try{
-            InputStream input = mainActivity.getContentResolver().openInputStream(uri);
-            log("created inputStream from contentResolver opening uri");
-            if(input == null){
-                log("inputStream is null, returning");
-                return;
-            }
-            Bitmap bitmap = BitmapFactory.decodeStream(input);
-            log("decoded input to a bitmap");
-            BitmapDrawable bitmapDrawable = new BitmapDrawable(mainActivity.getResources(), bitmap);
-            mainActivity.setSrcImage(bitmapDrawable);
-        }catch (IOException e){
-            log("IO Exception encountered");
-            e.printStackTrace();
-        }
+        Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
+        log("decoded input to a bitmap");
+        BitmapDrawable bitmapDrawable = new BitmapDrawable(mainActivity.getResources(), bitmap);
+        mainActivity.setSrcImage(bitmap);
     }
+
 
     private void log(String msg){
         System.out.println("^^^ PhotoHelper: " + msg);

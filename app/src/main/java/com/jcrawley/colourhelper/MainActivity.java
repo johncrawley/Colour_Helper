@@ -1,28 +1,16 @@
 package com.jcrawley.colourhelper;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
-
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -33,11 +21,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private View selectedColorView;
     private Map<Integer, Runnable> menuActions;
     private PhotoHelper photoHelper;
+    private float bitmapHeight = 500, bitmapWidth = 500;
 
 
 
@@ -63,8 +47,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void setSrcImage(BitmapDrawable bitmapDrawable){
-        srcImageView.setBackground(bitmapDrawable);
+    public void setSrcImage(Bitmap bitmap){
+
+        srcImageView.setImageBitmap(bitmap);
+        bitmapHeight = bitmap.getHeight();
+        bitmapWidth = bitmap.getWidth();
+        setupScaledBitmap(bitmap);
+
     }
 
 
@@ -88,12 +77,16 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setupViews(){
+        bitmapHeight = 500;
+        bitmapWidth = 500;
         rgbTextView = findViewById(R.id.rgbText);
         srcImageView = findViewById(R.id.sourceImageView);
         selectedColorView = findViewById(R.id.selectedColorView);
         setupImageViewListenersAfterLayoutHasBeenLoaded();
         rgbTextView.setOnClickListener(v -> copyToClipBoard());
     }
+
+    private Bitmap scaledBitmap;
 
 
     private void setupImageViewListenersAfterLayoutHasBeenLoaded(){
@@ -106,11 +99,15 @@ public class MainActivity extends AppCompatActivity {
                 Drawable imgDrawable = srcImageView.getDrawable();
                 Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
                 imageViewCoordinates = getStartCoordinates();
-                Point p = getScaledImageDimensions(srcImageView);
-                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, p.x, p.y, false);
+                setupScaledBitmap(bitmap);
                 srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent, scaledBitmap));
             }
         });
+    }
+
+    private void setupScaledBitmap(Bitmap bitmap){
+        Point p = getScaledImageDimensions(srcImageView);
+        scaledBitmap = Bitmap.createScaledBitmap(bitmap, p.x, p.y, false);
     }
 
 
@@ -148,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
         float actualHeight, actualWidth;
         float viewHeight = imageView.getHeight();
         float viewWidth = imageView.getWidth();
-        float bitmapHeight = 500, bitmapWidth = 500;
 
         if (viewHeight * bitmapWidth <= viewWidth * bitmapHeight) {
             actualWidth = bitmapWidth * viewHeight / bitmapHeight;
@@ -174,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
         //clipboard.getPrimaryClip().getItemAt(0);
         Toast.makeText(this, getString(R.string.copied_to_clipboard_toast), Toast.LENGTH_SHORT).show();
     }
-
 
 
 }
