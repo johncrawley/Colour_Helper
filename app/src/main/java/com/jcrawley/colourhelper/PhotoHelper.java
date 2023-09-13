@@ -5,8 +5,10 @@ import static android.app.Activity.RESULT_OK;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -28,6 +30,10 @@ public class PhotoHelper {
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> cameraActivityResultLauncher;
     private File photoFile;
+    private int initialRotation = 0;
+    private float currentScale = 1;
+    private int rotation = 0;
+
 
     public PhotoHelper(MainActivity mainActivity){
         this.mainActivity = mainActivity;
@@ -134,8 +140,42 @@ public class PhotoHelper {
         Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
         log("decoded input to a bitmap");
         BitmapDrawable bitmapDrawable = new BitmapDrawable(mainActivity.getResources(), bitmap);
-        mainActivity.setSrcImage(bitmap);
+        mainActivity.setSrcImage(createAmendedBitmapFrom(bitmap));
     }
+
+
+    private int getInitialAngle(){
+        if(initialRotation == 0){
+            return 0;
+        }
+        return getScreenOrientation() == Configuration.ORIENTATION_LANDSCAPE ? 0 : 90;
+    }
+
+
+    private int getScreenOrientation(){
+        return mainActivity.getResources().getConfiguration().orientation;
+    }
+
+
+    private Bitmap createAmendedBitmapFrom(Bitmap photoBitmap){
+        return Bitmap.createBitmap(photoBitmap,
+                0,
+                0,
+                photoBitmap.getWidth(),
+                photoBitmap.getHeight(),
+                getRotateAndScaledMatrix(true),
+                true);
+    }
+
+
+    public Matrix getRotateAndScaledMatrix(boolean isUsingPreviewScale){
+        Matrix matrix = new Matrix();
+        matrix.postRotate((getInitialAngle() + rotation) % 360);
+        float scale = isUsingPreviewScale ? currentScale * 2 : currentScale;
+        matrix.postScale(scale, scale);
+        return matrix;
+    }
+
 
 
     private void log(String msg){
