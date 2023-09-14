@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -30,14 +31,25 @@ public class PhotoHelper {
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> cameraActivityResultLauncher;
     private File photoFile;
-    private int initialRotation = 0;
+    private int initialRotation = 90;
     private float currentScale = 1;
     private int rotation = 0;
+    private int bitmapDimen;
 
 
     public PhotoHelper(MainActivity mainActivity){
         this.mainActivity = mainActivity;
         initRequestPermissionLauncher();
+        setBitmapDimensions();
+    }
+
+
+    private void setBitmapDimensions(){
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        int height = displayMetrics.heightPixels;
+        int width = displayMetrics.widthPixels;
+        bitmapDimen = Math.min(width, height) - 50;
     }
 
 
@@ -144,25 +156,25 @@ public class PhotoHelper {
     }
 
 
-    private int getInitialAngle(){
-        if(initialRotation == 0){
-            return 0;
-        }
-        return getScreenOrientation() == Configuration.ORIENTATION_LANDSCAPE ? 0 : 90;
-    }
-
-
-    private int getScreenOrientation(){
-        return mainActivity.getResources().getConfiguration().orientation;
-    }
-
-
     private Bitmap createAmendedBitmapFrom(Bitmap photoBitmap){
+        int amendedPhotoWidth, amendedPhotoHeight, photoCropX, photoCropY;
+        if(photoBitmap.getWidth() > photoBitmap.getHeight()){
+            photoCropX = 0;
+            amendedPhotoHeight = photoBitmap.getHeight();
+            photoCropY = (photoBitmap.getWidth() - photoBitmap.getHeight()) / 2;
+            amendedPhotoWidth = photoBitmap.getHeight();
+        }
+        else{
+            photoCropY = 0;
+            amendedPhotoWidth = photoBitmap.getWidth();
+            photoCropX = (photoBitmap.getHeight() - photoBitmap.getWidth()) / 2;
+            amendedPhotoHeight = photoBitmap.getWidth();
+        }
         return Bitmap.createBitmap(photoBitmap,
-                0,
-                0,
-                photoBitmap.getWidth(),
-                photoBitmap.getHeight(),
+                photoCropX,
+                photoCropY,
+                amendedPhotoWidth,
+                amendedPhotoHeight,
                 getRotateAndScaledMatrix(true),
                 true);
     }
@@ -174,6 +186,19 @@ public class PhotoHelper {
         float scale = isUsingPreviewScale ? currentScale * 2 : currentScale;
         matrix.postScale(scale, scale);
         return matrix;
+    }
+
+
+    private int getInitialAngle(){
+        if(initialRotation == 0){
+            return 0;
+        }
+        return getScreenOrientation() == Configuration.ORIENTATION_LANDSCAPE ? 0 : 90;
+    }
+
+
+    private int getScreenOrientation(){
+        return mainActivity.getResources().getConfiguration().orientation;
     }
 
 
