@@ -157,26 +157,39 @@ public class PhotoHelper {
 
 
     private Bitmap createAmendedBitmapFrom(Bitmap photoBitmap){
-        int amendedPhotoWidth, amendedPhotoHeight, photoCropX, photoCropY;
-        if(photoBitmap.getWidth() > photoBitmap.getHeight()){
-            photoCropX = 0;
-            amendedPhotoHeight = photoBitmap.getHeight();
-            photoCropY = (photoBitmap.getWidth() - photoBitmap.getHeight()) / 2;
-            amendedPhotoWidth = photoBitmap.getHeight();
-        }
-        else{
-            photoCropY = 0;
-            amendedPhotoWidth = photoBitmap.getWidth();
-            photoCropX = (photoBitmap.getHeight() - photoBitmap.getWidth()) / 2;
-            amendedPhotoHeight = photoBitmap.getWidth();
-        }
+        int[] amendedDimensions = getAmendedDimensions(photoBitmap);
         return Bitmap.createBitmap(photoBitmap,
-                photoCropX,
-                photoCropY,
-                amendedPhotoWidth,
-                amendedPhotoHeight,
+                amendedDimensions[0],
+                amendedDimensions[1],
+                amendedDimensions[2],
+                amendedDimensions[3],
                 getRotateAndScaledMatrix(true),
                 true);
+    }
+
+
+    private int[] getAmendedDimensions(Bitmap bitmap){
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        if(width == height){
+            return new int[]{0,0,width,height};
+        }
+
+        int x = 0;
+        int y = 0;
+        int w = width;
+        int h = height;
+
+        if(width > height){
+            x =  Math.abs(width - height) / 2;
+            w =  height;
+        }
+        else{
+            y =  (height - width) / 2;
+            h =  width;
+        }
+        return new int[]{x,y, w, h};
     }
 
 
