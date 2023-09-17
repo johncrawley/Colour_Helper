@@ -163,7 +163,7 @@ public class PhotoHelper {
                 amendedDimensions[1],
                 amendedDimensions[2],
                 amendedDimensions[3],
-                getRotateAndScaledMatrix(true),
+                getRotateAndScaledMatrix(),
                 true);
     }
 
@@ -193,10 +193,10 @@ public class PhotoHelper {
     }
 
 
-    public Matrix getRotateAndScaledMatrix(boolean isUsingPreviewScale){
+    public Matrix getRotateAndScaledMatrix(){
         Matrix matrix = new Matrix();
         matrix.postRotate((getInitialAngle() + rotation) % 360);
-        float scale = isUsingPreviewScale ? currentScale * 2 : currentScale;
+        float scale = 0.5f;
         matrix.postScale(scale, scale);
         return matrix;
     }

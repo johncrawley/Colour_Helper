@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private Map<Integer, Runnable> menuActions;
     private PhotoHelper photoHelper;
     private float bitmapHeight = 500, bitmapWidth = 500;
+    private Bitmap scaledBitmap;
 
 
 
@@ -48,12 +49,16 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void setSrcImage(Bitmap bitmap){
-
         srcImageView.setImageBitmap(bitmap);
         bitmapHeight = bitmap.getHeight();
         bitmapWidth = bitmap.getWidth();
-        setupScaledBitmap(bitmap);
+        log("setSrcImage()  bitmap dimensions: " + bitmapWidth + "," + bitmapHeight);
+        setupScaledImage();
+    }
 
+
+    private void log(String msg){
+        System.out.println("^^^ MainActivity: " + msg);
     }
 
 
@@ -86,8 +91,6 @@ public class MainActivity extends AppCompatActivity {
         rgbTextView.setOnClickListener(v -> copyToClipBoard());
     }
 
-    private Bitmap scaledBitmap;
-
 
     private void setupImageViewListenersAfterLayoutHasBeenLoaded(){
         ViewGroup layout = findViewById(R.id.mainLayout);
@@ -96,14 +99,20 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onGlobalLayout() {
                 layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                Drawable imgDrawable = srcImageView.getDrawable();
-                Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
-                imageViewCoordinates = getStartCoordinates();
-                setupScaledBitmap(bitmap);
+                setupScaledImage();
                 srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent, scaledBitmap));
             }
         });
     }
+
+
+    private void setupScaledImage(){
+        Drawable imgDrawable = srcImageView.getDrawable();
+        Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
+        imageViewCoordinates = getStartCoordinates();
+        setupScaledBitmap(bitmap);
+    }
+
 
     private void setupScaledBitmap(Bitmap bitmap){
         Point p = getScaledImageDimensions(srcImageView);
