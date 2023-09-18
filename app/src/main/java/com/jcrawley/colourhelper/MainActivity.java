@@ -8,6 +8,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -105,11 +106,24 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private int imageViewWidth, imageViewHeight, imageBottom, imageRight, imageTop, imageLeft;
+    private Rect imageViewRect;
 
     private void setupScaledImage(){
+        imageViewWidth = srcImageView.getMeasuredWidth();
+        imageViewHeight = srcImageView.getMeasuredHeight();
         Drawable imgDrawable = srcImageView.getDrawable();
         Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
-        imageViewCoordinates = getStartCoordinates();
+        imageViewCoordinates = getImageViewCoordinates();
+        imageLeft = imageViewCoordinates[0];
+        imageTop = imageViewCoordinates[1];
+        imageBottom = imageTop + imageViewHeight;
+        imageRight = imageLeft + imageViewWidth;
+        imageViewRect = new Rect(imageLeft, imageTop, imageRight, imageBottom);
+
+        log("image view width, height: " + imageViewWidth + ","  +imageViewHeight + " start x,y : " + imageViewCoordinates[0] + "," + imageViewCoordinates[1]);
+        log("image view rect: " + imageLeft + "," + imageTop + "," + imageRight + "," + imageBottom + "  --> " + imageViewRect);
+
         setupScaledBitmap(bitmap);
     }
 
@@ -121,6 +135,25 @@ public class MainActivity extends AppCompatActivity {
 
 
     private boolean setColorRgbTextFromImagePixel(MotionEvent motionEvent, Bitmap scaledBitmap){
+        int motionX = (int)motionEvent.getX();
+        int motionY = (int)motionEvent.getY();
+        boolean containsPoint = srcImageView.getDrawable().getBounds().contains(motionX, motionY);
+        log("contains Point " + containsPoint);
+        if(motionEvent.getX() < imageLeft
+                || motionEvent.getX() > imageRight
+                || motionEvent.getY() < imageTop
+                || motionEvent.getY() > imageBottom){
+            log("outside bounds! x,y, bounds: "
+                    + (int)motionEvent.getX() + ","
+                    + (int) motionEvent.getY()
+                    + " view l,t,r,b:"
+                    + imageLeft + ","
+                    + imageTop + ","
+                    + imageRight + ","
+                    + imageBottom);
+            return true;
+        }
+
         int x = getCoordinate(motionEvent.getX(), scaledBitmap.getWidth(), imageViewCoordinates[0]);
         int y = getCoordinate(motionEvent.getY(), scaledBitmap.getHeight(), imageViewCoordinates[1]);
         int pixelColorValue = scaledBitmap.getPixel(x, y);
@@ -137,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public int[] getStartCoordinates(){
+    public int[] getImageViewCoordinates(){
         int[] startCoordinates = new int[2];
         srcImageView.getLocationOnScreen(startCoordinates);
         return startCoordinates;
