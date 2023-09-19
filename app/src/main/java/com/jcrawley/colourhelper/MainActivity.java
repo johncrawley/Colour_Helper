@@ -7,8 +7,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -34,9 +32,8 @@ public class MainActivity extends AppCompatActivity {
     private View selectedColorView;
     private Map<Integer, Runnable> menuActions;
     private PhotoHelper photoHelper;
-    private float bitmapHeight = 500, bitmapWidth = 500;
     private Bitmap scaledBitmap;
-
+    private int imageViewWidth, imageViewHeight, imageBottom, imageRight, imageTop, imageLeft;
 
 
     @Override
@@ -51,15 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void setSrcImage(Bitmap bitmap){
         srcImageView.setImageBitmap(bitmap);
-        bitmapHeight = bitmap.getHeight();
-        bitmapWidth = bitmap.getWidth();
-        log("setSrcImage()  bitmap dimensions: " + bitmapWidth + "," + bitmapHeight);
         setupScaledImage();
-    }
-
-
-    private void log(String msg){
-        System.out.println("^^^ MainActivity: " + msg);
     }
 
 
@@ -83,8 +72,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setupViews(){
-        bitmapHeight = 500;
-        bitmapWidth = 500;
         rgbTextView = findViewById(R.id.rgbText);
         srcImageView = findViewById(R.id.sourceImageView);
         selectedColorView = findViewById(R.id.selectedColorView);
@@ -101,13 +88,11 @@ public class MainActivity extends AppCompatActivity {
             public void onGlobalLayout() {
                 layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 setupScaledImage();
-                srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent, scaledBitmap));
+                srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent));
             }
         });
     }
 
-    private int imageViewWidth, imageViewHeight, imageBottom, imageRight, imageTop, imageLeft;
-    private Rect imageViewRect;
 
     private void setupScaledImage(){
         imageViewWidth = srcImageView.getMeasuredWidth();
@@ -116,51 +101,40 @@ public class MainActivity extends AppCompatActivity {
         Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
         imageViewCoordinates = getImageViewCoordinates();
         imageLeft = imageViewCoordinates[0];
-        imageTop = imageViewCoordinates[1];
+        imageTop = 0;
         imageBottom = imageTop + imageViewHeight;
         imageRight = imageLeft + imageViewWidth;
-        imageViewRect = new Rect(imageLeft, imageTop, imageRight, imageBottom);
-
-        log("image view width, height: " + imageViewWidth + ","  +imageViewHeight + " start x,y : " + imageViewCoordinates[0] + "," + imageViewCoordinates[1]);
-        log("image view rect: " + imageLeft + "," + imageTop + "," + imageRight + "," + imageBottom + "  --> " + imageViewRect);
-
         setupScaledBitmap(bitmap);
     }
 
 
     private void setupScaledBitmap(Bitmap bitmap){
-        Point p = getScaledImageDimensions(srcImageView);
-        scaledBitmap = Bitmap.createScaledBitmap(bitmap, p.x, p.y, false);
+        scaledBitmap = Bitmap.createScaledBitmap(bitmap, imageViewWidth, imageViewHeight, false);
     }
 
 
-    private boolean setColorRgbTextFromImagePixel(MotionEvent motionEvent, Bitmap scaledBitmap){
-        int motionX = (int)motionEvent.getX();
-        int motionY = (int)motionEvent.getY();
-        boolean containsPoint = srcImageView.getDrawable().getBounds().contains(motionX, motionY);
-        log("contains Point " + containsPoint);
-        if(motionEvent.getX() < imageLeft
-                || motionEvent.getX() > imageRight
-                || motionEvent.getY() < imageTop
-                || motionEvent.getY() > imageBottom){
-            log("outside bounds! x,y, bounds: "
-                    + (int)motionEvent.getX() + ","
-                    + (int) motionEvent.getY()
-                    + " view l,t,r,b:"
-                    + imageLeft + ","
-                    + imageTop + ","
-                    + imageRight + ","
-                    + imageBottom);
+    private boolean setColorRgbTextFromImagePixel(MotionEvent motionEvent){
+        if(isSelectedPointOutsideImageBounds(motionEvent)){
             return true;
         }
-
         int x = getCoordinate(motionEvent.getX(), scaledBitmap.getWidth(), imageViewCoordinates[0]);
-        int y = getCoordinate(motionEvent.getY(), scaledBitmap.getHeight(), imageViewCoordinates[1]);
+        int y = getCoordinate(motionEvent.getY(), scaledBitmap.getHeight(), 0);
         int pixelColorValue = scaledBitmap.getPixel(x, y);
         String colorText = createRgbStr(pixelColorValue);
         rgbTextView.setText(colorText);
         selectedColorView.setBackgroundColor(pixelColorValue);
         return true;
+    }
+
+
+    private boolean isSelectedPointOutsideImageBounds(MotionEvent motionEvent){
+        int motionX = (int)motionEvent.getX();
+        int motionY = (int)motionEvent.getY();
+
+        return motionX < imageLeft
+                || motionX > imageRight
+                || motionY < imageTop
+                || motionY > imageBottom;
     }
 
 
@@ -180,22 +154,6 @@ public class MainActivity extends AppCompatActivity {
     private String createRgbStr(int pixelValue){
         String str = Integer.toHexString(pixelValue).substring(2);
         return "#" + str;
-    }
-
-
-    private Point getScaledImageDimensions(ImageView imageView){
-        float actualHeight, actualWidth;
-        float viewHeight = imageView.getHeight();
-        float viewWidth = imageView.getWidth();
-
-        if (viewHeight * bitmapWidth <= viewWidth * bitmapHeight) {
-            actualWidth = bitmapWidth * viewHeight / bitmapHeight;
-            actualHeight = viewHeight;
-        } else {
-            actualHeight = bitmapHeight * viewWidth / bitmapWidth;
-            actualWidth = viewWidth;
-        }
-        return new Point((int)actualWidth, (int)actualHeight);
     }
 
 

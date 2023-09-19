@@ -31,10 +31,6 @@ public class PhotoHelper {
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> cameraActivityResultLauncher;
     private File photoFile;
-    private int initialRotation = 90;
-    private float currentScale = 1;
-    private int rotation = 0;
-    private int bitmapDimen;
 
 
     public PhotoHelper(MainActivity mainActivity){
@@ -47,9 +43,6 @@ public class PhotoHelper {
     private void setBitmapDimensions(){
         DisplayMetrics displayMetrics = new DisplayMetrics();
         mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        int height = displayMetrics.heightPixels;
-        int width = displayMetrics.widthPixels;
-        bitmapDimen = Math.min(width, height) - 50;
     }
 
 
@@ -99,7 +92,6 @@ public class PhotoHelper {
                             log("photoBitmap is null, returning!");
                             return;
                         }
-                        BitmapDrawable bitmapDrawable = new BitmapDrawable(mainActivity.getResources(), photoBitmap);
                         log("photo bitmap dimensions: " + photoBitmap.getHeight() + "," + photoBitmap.getWidth());
                         mainActivity.setSrcImage(photoBitmap);
 
@@ -150,8 +142,6 @@ public class PhotoHelper {
             return;
         }
         Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
-        log("decoded input to a bitmap");
-        BitmapDrawable bitmapDrawable = new BitmapDrawable(mainActivity.getResources(), bitmap);
         mainActivity.setSrcImage(createAmendedBitmapFrom(bitmap));
     }
 
@@ -195,6 +185,7 @@ public class PhotoHelper {
 
     public Matrix getRotateAndScaledMatrix(){
         Matrix matrix = new Matrix();
+        int rotation = 0;
         matrix.postRotate((getInitialAngle() + rotation) % 360);
         float scale = 0.5f;
         matrix.postScale(scale, scale);
@@ -203,6 +194,7 @@ public class PhotoHelper {
 
 
     private int getInitialAngle(){
+        int initialRotation = 90;
         if(initialRotation == 0){
             return 0;
         }
