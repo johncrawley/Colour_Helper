@@ -130,7 +130,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean isSelectedPointOutsideImageBounds(MotionEvent motionEvent){
         int motionX = (int)motionEvent.getX();
         int motionY = (int)motionEvent.getY();
-
         return motionX < imageLeft
                 || motionX > imageRight
                 || motionY < imageTop
