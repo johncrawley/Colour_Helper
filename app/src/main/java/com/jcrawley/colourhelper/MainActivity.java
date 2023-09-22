@@ -2,6 +2,8 @@ package com.jcrawley.colourhelper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+
 import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -32,17 +34,20 @@ public class MainActivity extends AppCompatActivity {
     private View selectedColorView;
     private Map<Integer, Runnable> menuActions;
     private PhotoHelper photoHelper;
-    private Bitmap scaledBitmap;
-    private int imageViewWidth, imageViewHeight, imageBottom, imageRight, imageTop, imageLeft;
-
+    private MainViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setupViewModel();
         setupViews();
         photoHelper = new PhotoHelper(this);
         photoHelper.initActivityResultLauncherForCamera();
+    }
+
+    private void setupViewModel(){
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
     }
 
 
@@ -75,19 +80,21 @@ public class MainActivity extends AppCompatActivity {
         rgbTextView = findViewById(R.id.rgbText);
         srcImageView = findViewById(R.id.sourceImageView);
         selectedColorView = findViewById(R.id.selectedColorView);
-        setupImageViewListenersAfterLayoutHasBeenLoaded();
+        setupImageViewListenersAfterLayoutLoads();
         rgbTextView.setOnClickListener(v -> copyToClipBoard());
     }
 
 
-    private void setupImageViewListenersAfterLayoutHasBeenLoaded(){
+    private void setupImageViewListenersAfterLayoutLoads(){
         ViewGroup layout = findViewById(R.id.mainLayout);
         layout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @SuppressLint("ClickableViewAccessibility")
             @Override
             public void onGlobalLayout() {
                 layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                setupScaledImage();
+                if(!viewModel.isImageAssigned){
+                    setupScaledImage();
+                }
                 srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent));
             }
         });
@@ -95,21 +102,21 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setupScaledImage(){
-        imageViewWidth = srcImageView.getMeasuredWidth();
-        imageViewHeight = srcImageView.getMeasuredHeight();
+        viewModel.imageViewWidth = srcImageView.getMeasuredWidth();
+        viewModel.imageViewHeight = srcImageView.getMeasuredHeight();
         Drawable imgDrawable = srcImageView.getDrawable();
         Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
         imageViewCoordinates = getImageViewCoordinates();
-        imageLeft = imageViewCoordinates[0];
-        imageTop = 0;
-        imageBottom = imageTop + imageViewHeight;
-        imageRight = imageLeft + imageViewWidth;
+        viewModel.imageViewRect.top = 0;
+        viewModel.imageViewRect.left = imageViewCoordinates[0];
+        viewModel.imageViewRect.bottom = viewModel.imageViewRect.top + viewModel.imageViewHeight;
+        viewModel.imageViewRect.right = viewModel.imageViewRect.left + viewModel.imageViewWidth;
         setupScaledBitmap(bitmap);
     }
 
 
     private void setupScaledBitmap(Bitmap bitmap){
-        scaledBitmap = Bitmap.createScaledBitmap(bitmap, imageViewWidth, imageViewHeight, false);
+        viewModel.scaledBitmap = Bitmap.createScaledBitmap(bitmap, viewModel.imageViewWidth, viewModel.imageViewHeight, false);
     }
 
 
@@ -117,9 +124,9 @@ public class MainActivity extends AppCompatActivity {
         if(isSelectedPointOutsideImageBounds(motionEvent)){
             return true;
         }
-        int x = getCoordinate(motionEvent.getX(), scaledBitmap.getWidth(), imageViewCoordinates[0]);
-        int y = getCoordinate(motionEvent.getY(), scaledBitmap.getHeight(), 0);
-        int pixelColorValue = scaledBitmap.getPixel(x, y);
+        int x = getCoordinate(motionEvent.getX(), viewModel.scaledBitmap.getWidth(), imageViewCoordinates[0]);
+        int y = getCoordinate(motionEvent.getY(), viewModel.scaledBitmap.getHeight(), 0);
+        int pixelColorValue = viewModel.scaledBitmap.getPixel(x, y);
         String colorText = createRgbStr(pixelColorValue);
         rgbTextView.setText(colorText);
         selectedColorView.setBackgroundColor(pixelColorValue);
@@ -130,10 +137,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isSelectedPointOutsideImageBounds(MotionEvent motionEvent){
         int motionX = (int)motionEvent.getX();
         int motionY = (int)motionEvent.getY();
-        return motionX < imageLeft
-                || motionX > imageRight
-                || motionY < imageTop
-                || motionY > imageBottom;
+        return !viewModel.imageViewRect.contains(motionX, motionY);
     }
 
 
@@ -143,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public int[] getImageViewCoordinates(){
+    private int[] getImageViewCoordinates(){
         int[] startCoordinates = new int[2];
         srcImageView.getLocationOnScreen(startCoordinates);
         return startCoordinates;
