@@ -53,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void setSrcImage(Bitmap bitmap){
         srcImageView.setImageBitmap(bitmap);
-        setupScaledImage();
+        setupScaledImage(bitmap);
+        viewModel.loadedBitmap = bitmap;
     }
 
 
@@ -92,26 +93,37 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onGlobalLayout() {
                 layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                if(!viewModel.isImageAssigned){
-                    setupScaledImage();
-                }
+                Bitmap bitmap = loadExistingBitmap();
+                setupScaledImage(bitmap);
                 srcImageView.setOnTouchListener((view, motionEvent) -> setColorRgbTextFromImagePixel(motionEvent));
             }
         });
     }
 
 
-    private void setupScaledImage(){
+    private void setupScaledImage(Bitmap imageViewBitmap){
         viewModel.imageViewWidth = srcImageView.getMeasuredWidth();
         viewModel.imageViewHeight = srcImageView.getMeasuredHeight();
-        Drawable imgDrawable = srcImageView.getDrawable();
-        Bitmap bitmap = ((BitmapDrawable)imgDrawable).getBitmap();
         imageViewCoordinates = getImageViewCoordinates();
         viewModel.imageViewRect.top = 0;
         viewModel.imageViewRect.left = imageViewCoordinates[0];
         viewModel.imageViewRect.bottom = viewModel.imageViewRect.top + viewModel.imageViewHeight;
         viewModel.imageViewRect.right = viewModel.imageViewRect.left + viewModel.imageViewWidth;
-        setupScaledBitmap(bitmap);
+        setupScaledBitmap(imageViewBitmap);
+    }
+
+
+    private Bitmap loadExistingBitmap(){
+        assignViewModelBitmapToView();
+        Drawable imgDrawable = srcImageView.getDrawable();
+        return ((BitmapDrawable)imgDrawable).getBitmap();
+    }
+
+
+    private void assignViewModelBitmapToView(){
+        if(viewModel.loadedBitmap != null){
+            srcImageView.setImageBitmap(viewModel.loadedBitmap);
+        }
     }
 
 
