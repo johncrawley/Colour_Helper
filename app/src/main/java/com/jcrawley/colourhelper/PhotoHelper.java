@@ -9,9 +9,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
@@ -58,11 +56,11 @@ public class PhotoHelper {
     private void initRequestPermissionLauncher(){
        requestPermissionLauncher =
         mainActivity.registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-            if (isGranted) {
+            if(isGranted){
                 startTakePictureActivity();
-            } else {
-                Toast.makeText(mainActivity, "permission not given for camera!", Toast.LENGTH_LONG).show();
+                return;
             }
+            Toast.makeText(mainActivity, "permission not given for camera!", Toast.LENGTH_LONG).show();
         });
     }
 
@@ -72,29 +70,7 @@ public class PhotoHelper {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if(result != null && result.getResultCode() == RESULT_OK) {
-                        //loadImage();
-                        Intent data = result.getData();
-                        boolean doesPhotoFileExist = photoFile != null && photoFile.exists();
                         loadImageFromPhotoFile();
-
-                        log("camera result... photoFile still exists? : " + doesPhotoFileExist);
-                        if(data == null){
-                            log("loading photoBitmap but result intent is null, returning!");
-                            return;
-                        }
-                        Bundle bundle = data.getExtras();
-                        if(bundle == null){
-                            log("loading photoBitmap but bundle is null, returning!");
-                            return;
-                        }
-                        Bitmap photoBitmap = (Bitmap) bundle.get("data");
-                        if(photoBitmap == null){
-                            log("photoBitmap is null, returning!");
-                            return;
-                        }
-                        log("photo bitmap dimensions: " + photoBitmap.getHeight() + "," + photoBitmap.getWidth());
-                        mainActivity.setSrcImage(photoBitmap);
-
                     }
                 });
     }
@@ -105,14 +81,9 @@ public class PhotoHelper {
         File photoFile = createTempImageFile();
         if (photoFile == null) {
             Toast.makeText(mainActivity, "unable to create temp image file", Toast.LENGTH_SHORT).show();
-            System.out.println("^^^ unable to create temp image file");
             return;
         }
         Uri photoUri = FileProvider.getUriForFile(mainActivity, "com.jcrawley.colorpicker.android.fileprovider", photoFile);
-
-
-        System.out.println("photoUri path : " + photoUri.getPath());
-        log("photoFile exists? : " + photoFile.exists());
         cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
         cameraActivityResultLauncher.launch(cameraIntent);
     }
@@ -138,7 +109,6 @@ public class PhotoHelper {
 
     public void loadImageFromPhotoFile() {
         if (photoFile == null || !photoFile.exists()) {
-            log("loadImageFromPhotoFile() could find temp file");
             return;
         }
         Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
@@ -148,11 +118,12 @@ public class PhotoHelper {
 
     private Bitmap createAmendedBitmapFrom(Bitmap photoBitmap){
         int[] amendedDimensions = getAmendedDimensions(photoBitmap);
+        int squareLength = getAmendedSquareLength(photoBitmap);
         return Bitmap.createBitmap(photoBitmap,
-                amendedDimensions[0],
+               amendedDimensions[0],
                 amendedDimensions[1],
-                amendedDimensions[2],
-                amendedDimensions[3],
+                squareLength,
+                squareLength,
                 getRotateAndScaledMatrix(),
                 true);
     }
@@ -182,6 +153,24 @@ public class PhotoHelper {
         return new int[]{x,y, w, h};
     }
 
+    private int getAmendedX(Bitmap bitmap){
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        return width <= height ? 0 : Math.abs(width - height) / 2;
+    }
+
+    private int getAmendedY(Bitmap bitmap){
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        return width > height ? Math.abs(height - width) / 2 : 0;
+    }
+
+
+    private int getAmendedSquareLength(Bitmap bitmap){
+        return Math.min(bitmap.getWidth(), bitmap.getHeight());
+    }
+
+
 
     public Matrix getRotateAndScaledMatrix(){
         Matrix matrix = new Matrix();
@@ -194,10 +183,6 @@ public class PhotoHelper {
 
 
     private int getInitialAngle(){
-        int initialRotation = 90;
-        if(initialRotation == 0){
-            return 0;
-        }
         return getScreenOrientation() == Configuration.ORIENTATION_LANDSCAPE ? 0 : 90;
     }
 
@@ -206,9 +191,4 @@ public class PhotoHelper {
         return mainActivity.getResources().getConfiguration().orientation;
     }
 
-
-
-    private void log(String msg){
-        System.out.println("^^^ PhotoHelper: " + msg);
-    }
 }
