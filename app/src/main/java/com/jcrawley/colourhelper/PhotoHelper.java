@@ -9,6 +9,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -117,11 +118,11 @@ public class PhotoHelper {
 
 
     private Bitmap createAmendedBitmapFrom(Bitmap photoBitmap){
-        int[] amendedDimensions = getAmendedDimensions(photoBitmap);
         int squareLength = getAmendedSquareLength(photoBitmap);
+        Point p = getAmendedBitmapXY(photoBitmap);
         return Bitmap.createBitmap(photoBitmap,
-               amendedDimensions[0],
-                amendedDimensions[1],
+                p.x,
+                p.y,
                 squareLength,
                 squareLength,
                 getRotateAndScaledMatrix(),
@@ -129,47 +130,18 @@ public class PhotoHelper {
     }
 
 
-    private int[] getAmendedDimensions(Bitmap bitmap){
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-
-        if(width == height){
-            return new int[]{0,0,width,height};
-        }
-
-        int x = 0;
-        int y = 0;
-        int w = width;
-        int h = height;
-
-        if(width > height){
-            x =  Math.abs(width - height) / 2;
-            w =  height;
-        }
-        else{
-            y =  (height - width) / 2;
-            h =  width;
-        }
-        return new int[]{x,y, w, h};
-    }
-
-    private int getAmendedX(Bitmap bitmap){
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        return width <= height ? 0 : Math.abs(width - height) / 2;
-    }
-
-    private int getAmendedY(Bitmap bitmap){
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        return width > height ? Math.abs(height - width) / 2 : 0;
-    }
-
-
     private int getAmendedSquareLength(Bitmap bitmap){
         return Math.min(bitmap.getWidth(), bitmap.getHeight());
     }
 
+
+    private Point getAmendedBitmapXY(Bitmap bitmap){
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int x = width > height ? Math.abs(width - height) / 2 : 0;
+        int y = width > height ? 0 : (height - width) / 2;
+        return new Point(x,y);
+    }
 
 
     public Matrix getRotateAndScaledMatrix(){
