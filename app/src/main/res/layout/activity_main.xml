@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="fitXY"
-            android:src="@drawable/test_image"
+            android:src="@drawable/test_image_1"
             />
     </LinearLayout>
 
@@ -38,13 +38,10 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageLayout"
         app:layout_constraintBottom_toBottomOf="parent">
-        <View
-            android:id="@+id/selectedColorView"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_margin="10dp"
-            android:background="@color/black"
-        />
+
+        <include
+            layout="@layout/selected_color_preview" />
+
 
         <TextView
             android:id="@+id/rgbText"
