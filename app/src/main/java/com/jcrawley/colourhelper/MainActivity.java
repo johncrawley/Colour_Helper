@@ -1,5 +1,7 @@
 package com.jcrawley.colourhelper;
 
+import static androidx.core.content.ContextCompat.getSystemService;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -185,6 +187,5 @@ public class MainActivity extends AppCompatActivity {
         //clipboard.getPrimaryClip().getItemAt(0);
         Toast.makeText(this, getString(R.string.copied_to_clipboard_toast), Toast.LENGTH_SHORT).show();
     }
-
 
 }
